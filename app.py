@@ -25,7 +25,7 @@ def index():
             cur.execute("SELECT count FROM visits")
             visit_count = cur.fetchone()[0]
         db.close()
-        return f"Flask App has been visited {visit_count} times 19:50!"
+        return f"Flask App has been visited {visit_count} times 19:55!"
     except Exception as e:
         return f"Error: {str(e)}", 500
 
