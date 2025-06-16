@@ -11,7 +11,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -33,13 +33,10 @@ jobs:
         tags: ${{ env.IMAGE_NAME }}:latest
 
     - name: Set up Kubeconfig
-      shell: powershell
       run: |
-        if (-Not (Test-Path "$env:USERPROFILE\.kube")) {
-        New-Item -ItemType Directory -Path "$env:USERPROFILE\.kube" | Out-Null
-        }
-        [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("${{ secrets.KUBECONFIG_DATA }}")) | Set-Content "$env:USERPROFILE\.kube\config"
-
+        mkdir -p ~/.kube
+        echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
+      shell: bash
 
     - name: Set up Helm
       uses: azure/setup-helm@v3
