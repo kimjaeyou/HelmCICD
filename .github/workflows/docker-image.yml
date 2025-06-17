@@ -17,7 +17,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Remove previous builder (PowerShell-safe)
-      shell: pwsh
+      shell: powershell
       run: |
         try {
           docker buildx rm mybuilder -ErrorAction Stop
