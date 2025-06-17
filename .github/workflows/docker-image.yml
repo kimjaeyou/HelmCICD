@@ -32,7 +32,7 @@ jobs:
         push: true
         tags: ${{ env.IMAGE_NAME }}:latest
         no-cache: true  
-        
+
     - name: Set up Kubeconfig
       run: |
         $kubeDir = "$HOME\.kube"
@@ -51,9 +51,19 @@ jobs:
         Move-Item -Path .\windows-amd64\helm.exe -Destination "C:\Windows\System32\helm.exe" -Force
       shell: powershell
 
+
+    - name: Generate Helm release tag
+      run: |
+        $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $env:HELM_RELEASE_TAG = "release-$timestamp"
+        Write-Host "HELM_RELEASE_TAG=$env:HELM_RELEASE_TAG" >> $GITHUB_ENV
+      shell: powershell
+
+      
     - name: Deploy with Helm
       run: |
         helm upgrade --install flask-app ./flask-chart -n default --create-namespace `
           --set image.repository=${{ env.IMAGE_NAME }} `
-          --set image.tag=latest
+          --set image.tag=latest `
+          --version $env:HELM_RELEASE_TAG `
       shell: powershell
