@@ -65,5 +65,5 @@ jobs:
         helm upgrade --install flask-app ./flask-chart -n default --create-namespace `
           --set image.repository=${{ env.IMAGE_NAME }} `
           --set image.tag=latest `
-          --version $env:HELM_RELEASE_TAG
+          --version ${{env.HELM_RELEASE_TAG}}
       shell: powershell
