@@ -19,10 +19,10 @@ jobs:
     - name: Remove previous builder (PowerShell-safe)
       shell: powershell
       run: |
-        try {
-          & docker buildx rm mybuilder
-        } catch {
-          Write-Host "No previous builder found. Continuing..."
+        $ErrorActionPreference = 'SilentlyContinue'
+        & docker buildx rm mybuilder
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "No previous builder to remove or already removed."
         }
 
     - name: Set up Docker Buildx
