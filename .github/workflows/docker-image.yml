@@ -54,8 +54,9 @@ jobs:
 
     - name: Generate Helm release tag
       run: |
-         $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-         echo "HELM_RELEASE_TAG=release-$timestamp" >> $env:GITHUB_ENV
+        $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $env:HELM_RELEASE_TAG = "release-$timestamp"
+        Write-Host "HELM_RELEASE_TAG=$env:HELM_RELEASE_TAG" >> $GITHUB_ENV
       shell: powershell
 
 
@@ -64,5 +65,5 @@ jobs:
         helm upgrade --install flask-app ./flask-chart -n default --create-namespace `
           --set image.repository=${{ env.IMAGE_NAME }} `
           --set image.tag=latest `
-          --version ${{ env.HELM_RELEASE_TAG }}
+          --version ${{env.HELM_RELEASE_TAG}}
       shell: powershell
