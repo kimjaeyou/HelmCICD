@@ -10,10 +10,11 @@ env:
 
 jobs:
   deploy:
-    runs-on: self-hosted  # Windows 환경에서 실행
+    runs-on: self-hosted
+
     defaults:
       run:
-        shell: pwsh  # PowerShell로 기본 쉘 지정
+        shell: powershell
 
     steps:
       - name: Checkout code
@@ -41,9 +42,10 @@ jobs:
           if (-Not (Test-Path $kubeDir)) {
             New-Item -ItemType Directory -Path $kubeDir | Out-Null
           }
-          [System.Text.Encoding]::UTF8.GetString(
+          $decoded = [System.Text.Encoding]::UTF8.GetString(
             [Convert]::FromBase64String("${{ secrets.KUBECONFIG_DATA }}")
-          ) | Set-Content -Path "$kubeDir\config"
+          )
+          Set-Content -Path "$kubeDir\config" -Value $decoded
 
       - name: Set up Helm
         uses: azure/setup-helm@v3
