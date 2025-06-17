@@ -20,11 +20,10 @@ jobs:
       shell: powershell
       run: |
         try {
-          docker buildx rm mybuilder -ErrorAction Stop
+          & docker buildx rm mybuilder
         } catch {
           Write-Host "No previous builder found. Continuing..."
         }
-
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
