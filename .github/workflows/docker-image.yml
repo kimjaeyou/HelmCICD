@@ -52,7 +52,7 @@ jobs:
 
     - name: Deploy with Helm
       run: |
-        helm upgrade --install flask-app ./helm/flask-chart -n default --create-namespace `
+        helm upgrade --install flask-app ./flask-chart -n default --create-namespace `
           --set image.repository=${{ env.IMAGE_NAME }} `
           --set image.tag=latest
       shell: powershell
