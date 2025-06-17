@@ -16,6 +16,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Remove previous builder
+      shell: powershell
+      continue-on-error: true
+      run: |
+        & docker buildx rm mybuilder
+
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       with:
