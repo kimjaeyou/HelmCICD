@@ -59,11 +59,11 @@ jobs:
         Write-Host "HELM_RELEASE_TAG=$env:HELM_RELEASE_TAG" >> $GITHUB_ENV
       shell: powershell
 
-      
+
     - name: Deploy with Helm
       run: |
         helm upgrade --install flask-app ./flask-chart -n default --create-namespace `
           --set image.repository=${{ env.IMAGE_NAME }} `
           --set image.tag=latest `
-          --version $env:HELM_RELEASE_TAG `
+          --version $env:HELM_RELEASE_TAG
       shell: powershell
