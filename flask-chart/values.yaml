@@ -10,7 +10,7 @@ image:
   repository: flask-app
   # This sets the pull policy for images.
   tag: latest
-  pullPolicy: Never
+  pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
 
 
