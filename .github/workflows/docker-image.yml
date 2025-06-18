@@ -1,4 +1,4 @@
-name: Helm CI/CD
+name: Helm CI/CD version Linux
 
 on:
   push:
