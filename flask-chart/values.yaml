@@ -16,7 +16,7 @@ ingress:
   enabled: true
   className: nginx
   hosts:
-    - host: flask.prod.local
+    - host: flask-prod.local
       paths:
         - path: /
           pathType: ImplementationSpecific
