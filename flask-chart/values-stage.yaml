@@ -1,0 +1,22 @@
+replicaCount: 1
+
+image:
+  repository: kimjaeyoung98/flask-app
+  tag: stage
+  pullPolicy: Always
+
+env:
+  DB_HOST: mysql.stage.local
+  DB_PORT: "3306"
+  DB_USER: root
+  DB_PASSWORD: stage-secret
+  DB_NAME: StageDB
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: flask.stage.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific

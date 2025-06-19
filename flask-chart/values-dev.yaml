@@ -1,0 +1,22 @@
+replicaCount: 1
+
+image:
+  repository: kimjaeyoung98/flask-app
+  tag: dev
+  pullPolicy: Always
+
+env:
+  DB_HOST: mysql.dev.local
+  DB_PORT: "3306"
+  DB_USER: root
+  DB_PASSWORD: dev-secret
+  DB_NAME: DevDB
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: flask.dev.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific

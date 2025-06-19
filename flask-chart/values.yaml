@@ -1,9 +1,26 @@
-replicaCount: 1
+replicaCount: 2
 
 image:
-  repository: flask-app
-  tag: latest
-  pullPolicy: Never  # 로컬 테스트 시에는 Never로 설정
+  repository: kimjaeyoung98/flask-app
+  tag: prod
+  pullPolicy: Always
+
+env:
+  DB_HOST: mysql.prod.local
+  DB_PORT: "3306"
+  DB_USER: root
+  DB_PASSWORD: prod-secret
+  DB_NAME: ProdDB
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: flask.prod.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+
 
 imagePullSecrets: []
 nameOverride: ""
@@ -26,24 +43,6 @@ service:
   type: NodePort  # 외부 접근 위해 변경
   port: 80
   targetPort: 5000
-
-env: 
-  DB_HOST: mysql
-  DB_PORT: "3306"
-  DB_USER: root
-  DB_PASSWORD: root
-  DB_NAME: LocalTest
-
-ingress:
-  enabled: true
-  className: nginx
-  annotations: {}
-  hosts:
-    - host: 127.0.0.1.nip.io  # 또는 flask.localhost.me 처럼 public nip.io 사용
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls: []
 
 resources:
   limits:
