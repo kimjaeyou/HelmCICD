@@ -1,4 +1,4 @@
-name: Helm CI/CD version Linux
+name: Helm CI/CD with Tag-Based Rollout ver. Unix 2
 
 on:
   push:
@@ -13,12 +13,11 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - name: Checkout code
+    - name: Checkout source code
       uses: actions/checkout@v4
 
-    - name: Remove previous builder
-      run: |
-        docker buildx rm mybuilder || true
+    - name: Remove previous builder (if exists)
+      run: docker buildx rm mybuilder || true
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -32,12 +31,17 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
+    - name: Generate unique release tag
+      run: echo "HELM_RELEASE_TAG=release-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
         push: true
-        tags: ${{ env.IMAGE_NAME }}:latest
+        tags: |
+          ${{ env.IMAGE_NAME }}:latest
+          ${{ env.IMAGE_NAME }}:${{ env.HELM_RELEASE_TAG }}
         no-cache: true
 
     - name: Set up Kubeconfig
@@ -46,13 +50,9 @@ jobs:
         echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
         chmod 600 ~/.kube/config
 
-    - name: Generate Helm release tag
-      run: |
-        echo "HELM_RELEASE_TAG=release-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
-
-    - name: Deploy with Helm (force pull latest)
+    - name: Deploy with Helm using release tag
       run: |
         helm upgrade --install flask-app ./flask-chart -n default --create-namespace \
           --set image.repository=${{ env.IMAGE_NAME }} \
-          --set image.tag=latest \
+          --set image.tag=${{ env.HELM_RELEASE_TAG }} \
           --set image.pullPolicy=Always
