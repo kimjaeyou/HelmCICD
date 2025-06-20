@@ -6,7 +6,7 @@ image:
   pullPolicy: Always
 
 env:
-  DB_HOST: mysql.stage.local
+  DB_HOST: mysql.local
   DB_PORT: "3306"
   DB_USER: root
   DB_PASSWORD: stage-secret
