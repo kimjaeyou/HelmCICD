@@ -6,11 +6,11 @@ image:
   pullPolicy: Always
 
 env:
-  DB_HOST: mysql.local
+  DB_HOST: mysql
   DB_PORT: "3306"
   DB_USER: root
-  DB_PASSWORD: prod-secret
-  DB_NAME: ProdDB
+  DB_PASSWORD: secret
+  DB_NAME: LocalTest
 
 ingress:
   enabled: true
