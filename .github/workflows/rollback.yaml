@@ -1,0 +1,23 @@
+# .github/workflows/rollback.yml
+name: Helm Rollback Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: 'Helm revision number to rollback to'
+        required: true
+
+jobs:
+  rollback:
+    runs-on: self-hosted
+
+    steps:
+    - name: Set up kubeconfig
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
+
+    - name: Rollback helm revision
+      run: |
+        helm rollback flask-app-prod ${{ github.event.inputs.revision }} -n prod
