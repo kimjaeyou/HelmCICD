@@ -6,10 +6,10 @@ image:
   pullPolicy: Always
 
 env:
-  DB_HOST: mysql
+  DB_HOST: mysql-stage.stage.svc.cluster.local
   DB_PORT: "3306"
-  DB_USER: root
-  DB_PASSWORD: stage-secret
+  DB_USER: stageuser
+  DB_PASSWORD: stagepass
   DB_NAME: StageDB
 
 ingress:
@@ -20,3 +20,18 @@ ingress:
       paths:
         - path: /
           pathType: ImplementationSpecific
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 5000
+
+serviceAccount:
+  create: true
+  name: ""
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80

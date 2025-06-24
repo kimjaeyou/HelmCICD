@@ -6,11 +6,11 @@ image:
   pullPolicy: Always
 
 env:
-  DB_HOST: mysql
+  DB_HOST: mysql-prod.prod.svc.cluster.local
   DB_PORT: "3306"
-  DB_USER: root
-  DB_PASSWORD: secret
-  DB_NAME: LocalTest
+  DB_USER: produser
+  DB_PASSWORD: prodpass
+  DB_NAME: ProdDB
 
 ingress:
   enabled: true
@@ -21,56 +21,17 @@ ingress:
         - path: /
           pathType: ImplementationSpecific
 
-
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
-serviceAccount:
-  create: true
-  automount: true
-  annotations: {}
-  name: ""
-
-podAnnotations: {}
-podLabels: {}
-
-podSecurityContext: {}
-
-securityContext: {}
-
 service:
-  type: NodePort  # 외부 접근 위해 변경
+  type: NodePort
   port: 80
   targetPort: 5000
 
-resources:
-  limits:
-    cpu: 500m
-    memory: 256Mi
-  requests:
-    cpu: 250m
-    memory: 128Mi
-
-livenessProbe:
-  httpGet:
-    path: /
-    port: 5000  # 명확히 지정
-
-readinessProbe:
-  httpGet:
-    path: /
-    port: 5000  # 명확히 지정
+serviceAccount:
+  create: true
+  name: ""
 
 autoscaling:
   enabled: false
   minReplicas: 1
-  maxReplicas: 100
+  maxReplicas: 3
   targetCPUUtilizationPercentage: 80
-
-volumes: []
-volumeMounts: []
-
-nodeSelector: {}
-tolerations: []
-affinity: {}

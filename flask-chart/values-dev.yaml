@@ -6,10 +6,10 @@ image:
   pullPolicy: Always
 
 env:
-  DB_HOST: mysql
+  DB_HOST: mysql-dev.dev.svc.cluster.local
   DB_PORT: "3306"
-  DB_USER: root
-  DB_PASSWORD: dev-secret
+  DB_USER: devuser
+  DB_PASSWORD: devpass
   DB_NAME: DevDB
 
 ingress:
@@ -20,3 +20,19 @@ ingress:
       paths:
         - path: /
           pathType: ImplementationSpecific
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 5000
+
+serviceAccount:
+  create: true
+  name: ""
+  
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
