@@ -12,6 +12,10 @@ jobs:
   deploy:
     runs-on: self-hosted
 
+    strategy:
+      matrix:
+        environment: [dev, stage, prod]
+
     steps:
     - name: Checkout source code
       uses: actions/checkout@v4
@@ -50,9 +54,11 @@ jobs:
         echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
         chmod 600 ~/.kube/config
 
-    - name: Deploy with Helm using release tag
+    - name: Deploy to ${{ matrix.environment }} via Helm
       run: |
-        helm upgrade --install flask-app ./flask-chart -n default --create-namespace \
+        helm upgrade --install flask-app-${{ matrix.environment }} ./flask-chart \
+          -n ${{ matrix.environment }} --create-namespace \
+          -f flask-chart/values-${{ matrix.environment }}.yaml \
           --set image.repository=${{ env.IMAGE_NAME }} \
-          --set image.tag=${{ env.HELM_RELEASE_TAG }} \
+          --set image.tag=${{ env.RELEASE_TAG }} \
           --set image.pullPolicy=Always
