@@ -54,11 +54,18 @@ jobs:
         echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
         chmod 600 ~/.kube/config
 
+    # - name: Deploy with Helm using release tag
+    #   run: |
+    #     helm upgrade --install flask-app ./flask-chart -n default --create-namespace \
+    #       --set image.repository=${{ env.IMAGE_NAME }} \
+    #       --set image.tag=${{ env.HELM_RELEASE_TAG }} \
+    #       --set image.pullPolicy=Always
+
     - name: Deploy to ${{ matrix.environment }} via Helm
       run: |
         helm upgrade --install flask-app-${{ matrix.environment }} ./flask-chart \
           -n ${{ matrix.environment }} --create-namespace \
           -f flask-chart/values-${{ matrix.environment }}.yaml \
           --set image.repository=${{ env.IMAGE_NAME }} \
-          --set image.tag=${{ env.RELEASE_TAG }} \
+          --set image.tag=${{ env.HELM_RELEASE_TAG }} \
           --set image.pullPolicy=Always
