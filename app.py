@@ -10,7 +10,7 @@ def index():
         db = pymysql.connect(
             host=os.environ['DB_HOST'],
             user=os.environ['DB_USER'],
-            password=os.environ['DB_PASSWORD_2'],
+            password=os.environ['DB_PASSWORD'],
             database=os.environ['DB_NAME']
         )
         with db.cursor() as cur:
