@@ -1,7 +1,7 @@
 replicaCount: 2
 image:
   repository: kimjaeyoung98/flask-app
-  tag: release-20250626-113557
+  tag: release-20250626-114131
   pullPolicy: Always
 env:
   DB_HOST: mysql-prod.prod.svc.cluster.local
