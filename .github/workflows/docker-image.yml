@@ -74,7 +74,10 @@ name: Helm CI/CD – GitOps Release   # v3 (GitOps 전환)
 on:
   push:
     branches:
-      - main
+      - main  
+
+permissions:
+  contents: write 
 
 env:
   IMAGE_NAME: kimjaeyoung98/flask-app
