@@ -1,8 +1,13 @@
 replicaCount: 2
 
+# image:
+#   repository: kimjaeyoung98/flask-app
+#   tag: prod
+#   pullPolicy: Always
+
 image:
   repository: kimjaeyoung98/flask-app
-  tag: prod
+  tag: RELEASE_PLACEHOLDER  # 기존 prod → placeholder로 바꿔줌
   pullPolicy: Always
 
 env:
