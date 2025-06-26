@@ -1,17 +1,14 @@
 replicaCount: 1
-
 image:
   repository: kimjaeyoung98/flask-app
-  tag: dev
+  tag: release-20250626-113557
   pullPolicy: Always
-
 env:
   DB_HOST: mysql-dev.dev.svc.cluster.local
-  DB_PORT: "3306"
+  DB_PORT: '3306'
   DB_USER: devuser
   DB_PASSWORD: devpass
   DB_NAME: DevDB
-
 ingress:
   enabled: true
   className: nginx
@@ -20,19 +17,15 @@ ingress:
       paths:
         - path: /
           pathType: ImplementationSpecific
-
 service:
   type: NodePort
   port: 80
   targetPort: 5000
-
 serviceAccount:
   create: true
-  name: ""
-  
+  name: ''
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 3
   targetCPUUtilizationPercentage: 80
-

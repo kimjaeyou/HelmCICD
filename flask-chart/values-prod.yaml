@@ -1,22 +1,14 @@
 replicaCount: 2
-
-# image:
-#   repository: kimjaeyoung98/flask-app
-#   tag: prod
-#   pullPolicy: Always
-
 image:
   repository: kimjaeyoung98/flask-app
-  tag: RELEASE_PLACEHOLDER  # 기존 prod → placeholder로 바꿔줌
+  tag: release-20250626-113557
   pullPolicy: Always
-
 env:
   DB_HOST: mysql-prod.prod.svc.cluster.local
-  DB_PORT: "3306"
+  DB_PORT: '3306'
   DB_USER: produser
   DB_PASSWORD: prodpass
   DB_NAME: ProdDB
-
 ingress:
   enabled: true
   className: nginx
@@ -25,16 +17,13 @@ ingress:
       paths:
         - path: /
           pathType: ImplementationSpecific
-
 service:
   type: NodePort
   port: 80
   targetPort: 5000
-
 serviceAccount:
   create: true
-  name: ""
-
+  name: ''
 autoscaling:
   enabled: false
   minReplicas: 1
