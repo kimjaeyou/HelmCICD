@@ -124,10 +124,10 @@ jobs:
         no-cache: true
 
     # 7) yq 설치(간단 apt 사용) ─ GitHub Hosted라면 sudo 필요
-    - name: Install yq
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install -y yq
+    # - name: Install yq
+    #   run: |
+    #     sudo apt-get update -y
+    #     sudo apt-get install -y yq
 
     # 8) Helm values 파일의 tag 치환
     - name: Patch image tag in Helm values (dev/stage/prod)
