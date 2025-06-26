@@ -1,17 +1,14 @@
 replicaCount: 1
-
 image:
   repository: kimjaeyoung98/flask-app
-  tag: stage
+  tag: release-20250626-113557
   pullPolicy: Always
-
 env:
   DB_HOST: mysql-stage.stage.svc.cluster.local
-  DB_PORT: "3306"
+  DB_PORT: '3306'
   DB_USER: stageuser
   DB_PASSWORD: stagepass
   DB_NAME: StageDB
-
 ingress:
   enabled: true
   className: nginx
@@ -20,16 +17,13 @@ ingress:
       paths:
         - path: /
           pathType: ImplementationSpecific
-
 service:
   type: NodePort
   port: 80
   targetPort: 5000
-
 serviceAccount:
   create: true
-  name: ""
-
+  name: ''
 autoscaling:
   enabled: false
   minReplicas: 1
