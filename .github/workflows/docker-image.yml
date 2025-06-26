@@ -133,9 +133,8 @@ jobs:
     - name: Patch image tag in Helm values (dev/stage/prod)
       run: |
         for ENV in dev stage prod; do
-          yq -i -y '.image.tag = strenv(HELM_RELEASE_TAG)' flask-chart/values-${ENV}.yaml
+          yq -i -y ".image.tag = \"${{ env.HELM_RELEASE_TAG }}\"" flask-chart/values-${ENV}.yaml
         done
-
     # 9) Git 커밋 & 푸시
     - name: Commit updated values files
       env:
