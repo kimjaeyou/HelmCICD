@@ -89,9 +89,9 @@ jobs:
       with:
         fetch-depth: 0          # Git 히스토리 전체 필요 시
 
-    # 2) (선택) 이전 buildx 정리
-    - name: Remove previous builder (if exists)
-      run: docker buildx rm mybuilder || true
+    # # 2) (선택) 이전 buildx 정리
+    # - name: Remove previous builder (if exists)
+    #   run: docker buildx rm mybuilder || true
 
     # 3) Buildx 설정
     - name: Set up Docker Buildx
@@ -133,7 +133,7 @@ jobs:
     - name: Patch image tag in Helm values (dev/stage/prod)
       run: |
         for ENV in dev stage prod; do
-          yq -i '.image.tag = strenv(HELM_RELEASE_TAG)' flask-chart/values-${ENV}.yaml
+          yq -i -y '.image.tag = strenv(HELM_RELEASE_TAG)' flask-chart/values-${ENV}.yaml
         done
 
     # 9) Git 커밋 & 푸시
