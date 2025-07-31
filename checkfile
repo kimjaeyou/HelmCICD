@@ -113,3 +113,98 @@ if __name__ == "__main__":
     # 예시: sample.docx 가 같은 폴더에 있다고 가정
     target_file = os.path.join(os.getcwd(), "sample.docx")
     convert(target_file)
+
+
+import os
+import win32com.client
+from PIL import Image
+
+# 경로 하드코딩 (변경해서 사용)
+WORD_PATH = r"D:\RPA_docs\sample.docx"
+EXCEL_PATH = r"D:\RPA_docs\sample.xlsx"
+PPT_PATH = r"D:\RPA_docs\sample.pptx"
+
+# ---------- Word 처리 ----------
+def convert_word_to_tiff(docx_path, tiff_path):
+    word = win32com.client.Dispatch("Word.Application")
+    word.Visible = False
+    try:
+        doc = word.Documents.Open(docx_path)
+        doc.SaveAs(tiff_path, FileFormat=17)  # 17 = TIFF
+        doc.Close()
+    finally:
+        word.Quit()
+
+# ---------- Excel 처리 ----------
+def convert_excel_to_tiff(xlsx_path, tiff_path):
+    excel = win32com.client.Dispatch("Excel.Application")
+    excel.Visible = False
+    try:
+        wb = excel.Workbooks.Open(xlsx_path)
+        ws = wb.Worksheets(1)
+        ws.PageSetup.Zoom = False
+        ws.PageSetup.FitToPagesWide = 1
+        ws.PageSetup.FitToPagesTall = False
+        wb.ExportAsFixedFormat(1, tiff_path, Type=1, Quality=0, IncludeDocProperties=True,
+                               IgnorePrintAreas=False, From=1, To=1, OpenAfterPublish=False)
+        wb.Close(False)
+    finally:
+        excel.Quit()
+
+# ---------- PowerPoint 처리 ----------
+def convert_ppt_to_images(ppt_path, image_dir):
+    ppt = win32com.client.Dispatch("PowerPoint.Application")
+    ppt.Visible = False
+    try:
+        presentation = ppt.Presentations.Open(ppt_path, WithWindow=False)
+        presentation.SaveAs(image_dir, 17)  # 17 = PNG
+        presentation.Close()
+    finally:
+        ppt.Quit()
+
+# ---------- TIFF or PNG → PDF ----------
+def images_to_pdf(image_paths, output_pdf):
+    images = []
+    for path in image_paths:
+        img = Image.open(path).convert("RGB")
+        images.append(img)
+    if images:
+        images[0].save(output_pdf, save_all=True, append_images=images[1:])
+        print(f"✅ PDF 저장 완료: {output_pdf}")
+    else:
+        print("❌ 이미지 → PDF 변환 실패")
+
+# ---------- 경로 자동 생성 및 실행 ----------
+def run_word_convert():
+    base, _ = os.path.splitext(WORD_PATH)
+    tiff_path = base + ".tiff"
+    pdf_path = base + "_converted.pdf"
+    convert_word_to_tiff(WORD_PATH, tiff_path)
+    images_to_pdf([tiff_path], pdf_path)
+
+def run_excel_convert():
+    base, _ = os.path.splitext(EXCEL_PATH)
+    pdf_path = base + "_converted.pdf"
+    tiff_path = base + ".pdf"  # Excel은 TIFF로 저장이 어려워 PDF로 중간 저장됨
+    convert_excel_to_tiff(EXCEL_PATH, tiff_path)
+    print(f"✅ Excel PDF 출력 완료: {tiff_path}")
+    # 필요 시 PDF → 이미지 변환 후 이미지 기반 PDF로 재생성 가능 (고급 기능)
+
+def run_ppt_convert():
+    base, _ = os.path.splitext(PPT_PATH)
+    image_dir = base + "_slides"
+    os.makedirs(image_dir, exist_ok=True)
+    convert_ppt_to_images(PPT_PATH, image_dir)
+
+    image_paths = sorted([
+        os.path.join(image_dir, f) for f in os.listdir(image_dir)
+        if f.endswith(".png")
+    ])
+    pdf_path = base + "_converted.pdf"
+    images_to_pdf(image_paths, pdf_path)
+
+# ---------- 메인 실행 ----------
+if __name__ == "__main__":
+    run_word_convert()
+    run_excel_convert()
+    run_ppt_convert()
