@@ -208,3 +208,21 @@ if __name__ == "__main__":
     run_word_convert()
     run_excel_convert()
     run_ppt_convert()
+
+
+
+
+
+import boto3
+
+s3 = boto3.client('s3')
+
+local_file_path = 'local/path/data.csv'
+bucket_name = 'my-bucket'
+s3_key = 'reports/2025/08/data.csv'  # S3 내 경로
+
+try:
+    s3.upload_file(local_file_path, bucket_name, s3_key)
+    print(f"[✔] 업로드 완료: s3://{bucket_name}/{s3_key}")
+except Exception as e:
+    print(f"[✖] 업로드 실패: {e}")
