@@ -226,3 +226,98 @@ try:
     print(f"[✔] 업로드 완료: s3://{bucket_name}/{s3_key}")
 except Exception as e:
     print(f"[✖] 업로드 실패: {e}")
+
+
+
+
+
+
+
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
+public class BatchConvertCli {
+    public static void main(String[] args) throws Exception {
+        String outDir = "/path/out";
+        List<String> files = List.of(
+            "/path/sample.docx",
+            "/path/sample.xlsx",
+            "/path/sample.pptx",
+            "/path/sample.odt"
+        );
+
+        for (String in : files) {
+            List<String> cmd = new ArrayList<>();
+            cmd.add("soffice"); cmd.add("--headless"); cmd.add("--nologo"); cmd.add("--nofirststartwizard");
+            cmd.add("--convert-to"); cmd.add("pdf");
+            cmd.add("--outdir"); cmd.add(outDir);
+            cmd.add(in);
+
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.redirectErrorStream(true);
+            Process p = pb.start();
+            int code = p.waitFor();
+            if (code != 0) System.err.println("FAIL(" + code + "): " + in);
+            else System.out.println("OK: " + in);
+        }
+        System.out.println("전체 변환 완료 → " + outDir);
+    }
+}
+
+
+
+
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.*;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        // 입력 문서 경로 & 출력 폴더
+        String inputPath = "./input/TestPPT.pptx";
+        String outDir    = "./output"; // 폴더는 미리 만들어두세요
+
+        ProcessBuilder pb = new ProcessBuilder(
+                "soffice",
+                "--headless",
+                "--nologo",
+                "--nofirststartwizard",
+                "--convert-to", "pdf",
+                "--outdir", outDir,
+                inputPath
+        );
+        pb.redirectErrorStream(true);
+
+        Process p = pb.start();
+
+        // 로그 출력 (디버깅용)
+        Future<?> logTask = Executors.newSingleThreadExecutor().submit(() -> {
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    System.out.println("[soffice] " + line);
+                }
+            } catch (IOException ignored) {}
+        });
+
+        boolean finished = p.waitFor(120, TimeUnit.SECONDS); // 타임아웃 120s
+        if (!finished) {
+            p.destroyForcibly();
+            throw new RuntimeException("Timeout: soffice 변환이 종료되지 않았습니다.");
+        }
+        logTask.get(); // 로그 스레드 종료 대기
+
+        int exit = p.exitValue();
+        if (exit != 0) {
+            throw new RuntimeException("soffice 종료 코드=" + exit + " (로그를 확인하세요)");
+        }
+        System.out.println("PDF 생성 완료: " + outDir);
+        return;
+    }
+
+}
+
