@@ -1,0 +1,202 @@
+# 로컬 저장 경로 (원하면 변경)
+file.upload-dir=C:/temp/uploads
+# 최종 서버 업로드 URL (예: http://final-server/api/upload)
+final.upload-url=http://127.0.0.1:9000/api/upload
+
+package com.example.upload;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@ConfigurationProperties(prefix = "file")
+public class FileStorageProperties {
+    private String uploadDir;
+
+    public String getUploadDir() { return uploadDir; }
+    public void setUploadDir(String uploadDir) { this.uploadDir = uploadDir; }
+}
+
+package com.example.upload;
+
+import org.springframework.core.io.UrlResource;
+import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.*;
+
+@Service
+public class FileStorageService {
+
+    private final Path uploadRoot;
+
+    public FileStorageService(FileStorageProperties props) {
+        this.uploadRoot = Paths.get(props.getUploadDir()).toAbsolutePath().normalize();
+    }
+
+    @PostConstruct
+    public void init() throws IOException {
+        Files.createDirectories(uploadRoot);
+    }
+
+    public Path store(MultipartFile file) throws IOException {
+        String original = StringUtils.cleanPath(file.getOriginalFilename());
+        if (original.contains("..")) throw new IllegalArgumentException("Invalid file name");
+        Path target = uploadRoot.resolve(System.currentTimeMillis() + "_" + original);
+        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        return target;
+    }
+
+    public Resource loadAsResource(String filename) throws MalformedURLException {
+        Path file = uploadRoot.resolve(filename).normalize();
+        Resource resource = new UrlResource(file.toUri());
+        if (!resource.exists()) throw new RuntimeException("File not found: " + filename);
+        return resource;
+    }
+}
+
+
+
+package com.example.upload;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
+import java.io.File;
+import java.time.Duration;
+
+@Service
+public class ForwardUploadService {
+
+    private final RestTemplate restTemplate;
+    private final String finalUploadUrl;
+
+    public ForwardUploadService(
+            @Value("${final.upload-url}") String finalUploadUrl) {
+
+        // 타임아웃 간단 설정 (자바 11에서도 무난)
+        var factory = new org.springframework.http.client.HttpComponentsClientHttpRequestFactory();
+        factory.setConnectTimeout(10_000);
+        factory.setReadTimeout(60_000);
+
+        this.restTemplate = new RestTemplate(factory);
+        this.finalUploadUrl = finalUploadUrl;
+    }
+
+    public ResponseEntity<String> forwardToFinal(
+            File savedFile,
+            String projectId,
+            String metadata,
+            String path,
+            boolean isQuickUpload) {
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN));
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new FileSystemResource(savedFile));       // <-- 파일
+        body.add("project_id", projectId);                         // <-- Text
+        body.add("metadata", metadata);                            // <-- Text(JSON 문자열이어도 됨)
+        body.add("path", path);                                    // <-- Text
+        body.add("is_quick_upload", String.valueOf(isQuickUpload));// <-- Text("true"/"false")
+
+        HttpEntity<MultiValueMap<String, Object>> req = new HttpEntity<>(body, headers);
+        return restTemplate.postForEntity(finalUploadUrl, req, String.class);
+    }
+}
+
+
+
+
+package com.example.upload;
+
+import org.springframework.core.io.Resource;
+import org.springframework.http.*;
+import org.springframework.util.MimeTypeUtils;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.nio.file.Path;
+
+@RestController
+@RequestMapping("/api")
+public class UploadController {
+
+    private final FileStorageService fileStorageService;
+    private final ForwardUploadService forwardUploadService;
+
+    public UploadController(FileStorageService fileStorageService, ForwardUploadService forwardUploadService) {
+        this.fileStorageService = fileStorageService;
+        this.forwardUploadService = forwardUploadService;
+    }
+
+    /**
+     * 1차 업로드(미들웨어): 파일을 로컬에 저장하고, 즉시 최종 서버로도 전송.
+     * 최종 서버 응답까지 JSON으로 묶어 반환.
+     */
+    @PostMapping(path = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> upload(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam("project_id") String projectId,
+            @RequestParam(value = "metadata", required = false) String metadata,
+            @RequestParam(value = "path", required = false, defaultValue = "") String path,
+            @RequestParam(value = "is_quick_upload", required = false, defaultValue = "false") boolean isQuickUpload
+    ) {
+        try {
+            // 1) 로컬 저장
+            Path saved = fileStorageService.store(file);
+
+            // 2) 최종 서버로 전달 (form-data: file, project_id, metadata, path, is_quick_upload)
+            var forwardResp = forwardUploadService.forwardToFinal(
+                    saved.toFile(), projectId, metadata, path, isQuickUpload
+            );
+
+            // 3) 결과 응답
+            var resp = new java.util.LinkedHashMap<String, Object>();
+            resp.put("localSavedPath", saved.toString());
+            resp.put("finalStatus", forwardResp.getStatusCodeValue());
+            resp.put("finalBody", forwardResp.getBody());
+
+            return ResponseEntity.status(HttpStatus.OK).body(resp);
+
+        } catch (Exception e) {
+            var err = new java.util.LinkedHashMap<String, Object>();
+            err.put("error", e.getClass().getSimpleName());
+            err.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+        }
+    }
+
+    /**
+     * 로컬에 저장된 파일 확인용 (간단 미리보기/다운로드).
+     * 예: GET /api/files/1693900000000_sample.pdf
+     */
+    @GetMapping("/files/{filename:.+}")
+    public ResponseEntity<Resource> getFile(@PathVariable String filename) {
+        try {
+            Resource resource = fileStorageService.loadAsResource(filename);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
+
+
+
+spring.servlet.multipart.max-file-size=100MB
+spring.servlet.multipart.max-request-size=100MB
