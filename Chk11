@@ -1,133 +1,130 @@
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class Tag {
+    private String namespace;
+    private String value;
+}
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class FileEntry {
+    private String path;
+    private String newpath;
+    private String contenttype;
+    private String metadataForFile;
+
+    private List<String> manualDependencies = new ArrayList<>();
+    private List<String> scannedDependencies = new ArrayList<>();
+    private List<String> manualDependenciesNewPaths = new ArrayList<>();
+    private List<String> scannedDependenciesNewPaths = new ArrayList<>();
+
+    private String description;
+    private String author;
+
+    private List<Tag> tags = new ArrayList<>();
+    private boolean excluded;
+}
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class RootDoc {
+    private List<FileEntry> files = new ArrayList<>();
+    private List<String> packages = new ArrayList<>();
+    private List<String> globalValues = new ArrayList<>();
+}
+
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import java.io.File;
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-public class JsonFileAppenderJ11 {
+public class JsonVoWorkflow {
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
-            .enable(SerializationFeature.INDENT_OUTPUT); // 보기 좋은 포맷
+            .enable(SerializationFeature.INDENT_OUTPUT);
 
     /**
-     * files[templateIndex]를 템플릿으로 deepCopy 후 값 채워서
-     * files 배열의 마지막에 추가하고 저장합니다. (Java 11 호환)
+     * JSON 파일을 VO로 읽고, files[templateIndex]를 복사하여 수정 후
+     * files 배열의 마지막에 추가하고 저장합니다.
      */
-    public static void appendFileBlock(String inputPath, String outputPath, int templateIndex) throws Exception {
-        // 1) JSON 읽기
-        JsonNode rootNode = MAPPER.readTree(new File(inputPath));
-        if (!(rootNode instanceof ObjectNode)) {
-            throw new IllegalStateException("루트 노드가 Object가 아닙니다.");
-        }
-        ObjectNode root = (ObjectNode) rootNode;
+    public static void appendFromTemplate(String inputPath, String outputPath, int templateIndex) throws Exception {
+        // 1️⃣ JSON 파일 → VO 매핑
+        RootDoc doc = MAPPER.readValue(new File(inputPath), RootDoc.class);
 
-        // 2) files 배열 확보
-        JsonNode filesNode = root.get("files");
-        if (!(filesNode instanceof ArrayNode)) {
-            throw new IllegalStateException("'files' 필드가 배열이 아닙니다.");
+        if (doc.getFiles() == null || doc.getFiles().isEmpty()) {
+            throw new IllegalStateException("'files' 배열이 비어 있습니다.");
         }
-        ArrayNode files = (ArrayNode) filesNode;
-
-        if (templateIndex < 0 || templateIndex >= files.size()) {
-            throw new IllegalArgumentException("templateIndex 범위 오류: " + templateIndex);
+        if (templateIndex < 0 || templateIndex >= doc.getFiles().size()) {
+            throw new IllegalArgumentException("templateIndex가 잘못되었습니다.");
         }
 
-        // 3) 템플릿 복사
-        JsonNode templateNode = files.get(templateIndex);
-        if (!(templateNode instanceof ObjectNode)) {
-            throw new IllegalStateException("files[" + templateIndex + "] 가 Object가 아닙니다.");
-        }
-        ObjectNode template = (ObjectNode) templateNode;
-        ObjectNode newFile = template.deepCopy();
+        // 2️⃣ 템플릿 복사 (깊은 복사)
+        FileEntry template = doc.getFiles().get(templateIndex);
+        FileEntry copy = deepCopy(template, FileEntry.class);
 
-        // 4) 필요한 필드 값 채우기 (여기만 네 실데이터에 맞게 수정)
-        newFile.put("path", "/new/path/example.txt");
-        newFile.put("newpath", "/new/path/example.txt");
-        newFile.put("contenttype", "text/plain");
-        newFile.put("metadataForFile", "meta info");
-        newFile.put("description", "자동 추가된 파일 블록");
-        newFile.put("author", "kim.jy");
-        newFile.put("excluded", false);
+        // 3️⃣ 새로운 값 채우기 (실제 로직에 맞게 수정)
+        copy.setPath("/new/path/example.txt");
+        copy.setNewpath("/new/path/example.txt");
+        copy.setContenttype("text/plain");
+        copy.setMetadataForFile("meta info");
+        copy.setDescription("자동 추가된 파일 블록");
+        copy.setAuthor("kim.jy");
+        copy.setExcluded(false);
 
-        // 예: 고유 ID가 필요하면(스키마에 없다면 이 줄은 빼세요)
-        newFile.put("id", UUID.randomUUID().toString());
+        // 4️⃣ 배열 필드 새로 채우기
+        copy.setManualDependencies(Arrays.asList("/lib/util.jar", "/lib/core.jar"));
+        copy.setTags(Arrays.asList(
+                new Tag("module", "core"),
+                new Tag("purpose", "demo")
+        ));
 
-        // 배열 필드 예시 (manualDependencies)
-        ArrayNode manualDeps = MAPPER.createArrayNode();
-        manualDeps.add("/lib/util.jar");
-        manualDeps.add("/lib/core.jar");
-        newFile.set("manualDependencies", manualDeps);
+        // 5️⃣ files 배열 마지막에 추가
+        doc.getFiles().add(copy);
 
-        // 태그 배열 예시
-        ArrayNode tags = MAPPER.createArrayNode();
-        ObjectNode tag1 = MAPPER.createObjectNode();
-        tag1.put("namespace", "module");
-        tag1.put("value", "core");
-        tags.add(tag1);
-        ObjectNode tag2 = MAPPER.createObjectNode();
-        tag2.put("namespace", "purpose");
-        tag2.put("value", "demo");
-        tags.add(tag2);
-        newFile.set("tags", tags);
+        // (선택) 루트 레벨 수정도 가능
+        // doc.setPackages(Arrays.asList("pkg-a","pkg-b"));
+        // doc.setGlobalValues(Arrays.asList("G1","G2"));
 
-        // 5) 마지막에 추가
-        files.add(newFile);
-
-        // 6) 저장
-        MAPPER.writeValue(new File(outputPath), root);
+        // 6️⃣ VO → JSON 파일로 다시 저장
+        MAPPER.writeValue(new File(outputPath), doc);
         System.out.println("✅ files 항목 추가 완료: " + outputPath);
     }
 
-    /** path 값으로 템플릿을 찾는 Java 11 호환 버전 (옵션) */
-    public static void appendFileBlockByPath(String inputPath, String outputPath, String templatePathValue) throws Exception {
-        JsonNode rootNode = MAPPER.readTree(new File(inputPath));
-        if (!(rootNode instanceof ObjectNode)) {
-            throw new IllegalStateException("루트 노드가 Object가 아닙니다.");
-        }
-        ObjectNode root = (ObjectNode) rootNode;
-
-        JsonNode filesNode = root.get("files");
-        if (!(filesNode instanceof ArrayNode)) {
-            throw new IllegalStateException("'files' 필드가 배열이 아닙니다.");
-        }
-        ArrayNode files = (ArrayNode) filesNode;
-
-        ObjectNode template = null;
-        for (int i = 0; i < files.size(); i++) {
-            JsonNode n = files.get(i);
-            if (n instanceof ObjectNode) {
-                String p = n.path("path").asText(null);
-                if (templatePathValue != null && templatePathValue.equals(p)) {
-                    template = (ObjectNode) n;
-                    break;
-                }
-            }
-        }
-        if (template == null) {
-            throw new IllegalStateException("path='" + templatePathValue + "' 템플릿을 찾지 못했습니다.");
-        }
-
-        ObjectNode newFile = template.deepCopy();
-        // 필요 필드 채우기 (위와 동일하게 커스터마이징)
-        newFile.put("path", "/new/path/example.txt");
-        newFile.put("newpath", "/new/path/example.txt");
-        newFile.put("contenttype", "text/plain");
-        newFile.put("description", "자동 추가된 파일 블록");
-        newFile.put("author", "kim.jy");
-        newFile.put("excluded", false);
-
-        files.add(newFile);
-        MAPPER.writeValue(new File(outputPath), root);
+    /** Jackson 기반 deep copy (레퍼런스 공유 방지) */
+    public static <T> T deepCopy(Object src, Class<T> type) {
+        return MAPPER.convertValue(src, type);
     }
 
-    // 사용 예시
+    // 실행 테스트용 main
     public static void main(String[] args) {
         try {
-            appendFileBlock("input.json", "output.json", 0);
-            // appendFileBlockByPath("input.json", "output.json", "/existing/path/File1");
+            appendFromTemplate("input.json", "output.json", 0);
         } catch (Exception e) {
             e.printStackTrace();
         }
